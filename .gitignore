@@ -1,3 +1,19 @@
+tickbank/
+zk-single-kafka-single/
+.vscode
+venv_skulk/
+*/__pycache__/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.idea
+.idea/
+.DS_Store
+keys/
+hrhdbot-firebase-adminsdk-8z5q4-11bff65f7c.json
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
