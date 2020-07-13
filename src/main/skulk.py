@@ -13,7 +13,15 @@ class Skulk:
         global log
         LogHandler().set_logger()
         log = sb.log
-        log.info("hi")
+
+    def readinessProcess(self):
+        pass
+        # Check in local data is available
+        # In local if not available check in google cloud storage, if available downlaod to local
+        # If not available in local and cloud storage then call hrhd and get data in local and uplod to cloud bucket
+        # Complete this process for all the dates and respective companies
+
+
 
 def sysArghandler():
     try:
@@ -39,8 +47,8 @@ if __name__ == "__main__":
     # Enable to execute vis command promp
     # sysArghandler()
     skObj = Skulk(None, None, None)
-    td = TradingDates()
-
-    td.getTradedays("20200103", "20201007")
+    from src.utils.common.helper import CommonHelper
+    ch = CommonHelper()
+    ch.isHrhdPresent("20200714", "1")
 
 

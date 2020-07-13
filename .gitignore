@@ -11,6 +11,11 @@ __pycache__/
 .idea/
 .DS_Store
 keys/
+build/
+dist/
+hrhd_bank/
+ibapi.egg-info/
+skulk-HRHD-291589665dba.json
 hrhdbot-firebase-adminsdk-8z5q4-11bff65f7c.json
 
 
