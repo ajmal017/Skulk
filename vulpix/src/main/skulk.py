@@ -1,25 +1,48 @@
 import sys
-from src.main.skulk_objects import SkulkObject as sb
-sys.path.append(sb.skulk_path)
-import traceback
+import os
 import argparse
 import traceback
-from src.loghandler.log_handler import LogHandler
-from src.utils.trade_days.trading_day import TradingDates
+import json
+sys.path.append(os.getcwd()[:os.getcwd().find("Skulk")+len("Skulk")])
+from vulpix.src.main.skulk_objects import SkulkObject as sb
+from vulpix.src.loghandler.log_handler import LogHandler
+from vulpix.src.utils.error_book.errorbook import ErrorBook
+from vulpix.src.utils.trade_days.trading_day import TradingDates
+from vulpix.src.utils.common.helper import CommonHelper
 
 log = None
+error = None
+
 class Skulk:
-    def __init__(self, startdate=None, enddate=None, ins_list=None):
-        global log
+
+    def __init__(self, startdate=None, enddate=None, ins_list="other"):
+        global log, error
         LogHandler().set_logger()
         log = sb.log
+        error = ErrorBook()
+        self.start_date = startdate
+        self.end_date = enddate
+        self.td = TradingDates()
+        self.com = CommonHelper()
+
 
     def readinessProcess(self):
-        pass
+        try:
+            # Getting valid trading days
+            trading_dates = self.td.getTradedays(self.start_date, self.end_date)
+            log.info(trading_dates)
+            instruments = self.com.getBacktestlist()
+            log.info(instruments)
+
+
         # Check in local data is available
         # In local if not available check in google cloud storage, if available downlaod to local
         # If not available in local and cloud storage then call hrhd and get data in local and uplod to cloud bucket
         # Complete this process for all the dates and respective companies
+        except Exception as e:
+            error.handle(e, traceback.format_exc())
+
+
 
 
 
@@ -44,11 +67,9 @@ def sysArghandler():
         log.error(ex)
 
 if __name__ == "__main__":
-    # Enable to execute vis command promp
-    # sysArghandler()
-    skObj = Skulk(None, None, None)
-    from src.utils.common.helper import CommonHelper
-    ch = CommonHelper()
-    ch.isHrhdPresent("20200714", "1")
+    skObj = Skulk("20200713", "20200716", None)
+    skObj.readinessProcess()
+
+
 
 

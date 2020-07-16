@@ -2,8 +2,8 @@ import sys
 import datetime
 import json
 import traceback
-from src.main.skulk_objects import SkulkObject as sb
-from src.utils.error_book.errorbook import ErrorBook
+from vulpix.src.main.skulk_objects import SkulkObject as sb
+from vulpix.src.utils.error_book.errorbook import ErrorBook
 sys.path.append(sb.skulk_path)
 log = None
 error = None

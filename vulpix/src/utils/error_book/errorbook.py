@@ -1,4 +1,4 @@
-from src.main.skulk_objects import SkulkObject as sb
+from vulpix.src.main.skulk_objects import SkulkObject as sb
 import sys
 sys.path.append(sb.skulk_path)
 
@@ -11,7 +11,7 @@ class ErrorBook:
     def handle(self, *args):
         log.error("*************************** ERROR **************************************")
         log.error("Error Statement {}".format(str(args[0])))
-        log.error("Error Trade {}".format(str(args[1])))
+        log.error("Error Trace {}".format(str(args[1])))
         log.error("Funtion Parameter's:")
         log.error(args[2::])
         log.error("***************************** End **************************************")

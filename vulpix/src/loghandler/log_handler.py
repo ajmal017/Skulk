@@ -1,7 +1,7 @@
 import logging
 import os
 import sys
-from src.main.skulk_objects import SkulkObject as so
+from vulpix.src.main.skulk_objects import SkulkObject as so
 sys.path.append(so.skulk_path)
 import shutil
 
