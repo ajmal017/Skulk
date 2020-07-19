@@ -1,0 +1,2 @@
+class VulpixUtils:
+    pass
