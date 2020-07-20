@@ -31,7 +31,7 @@ class FastDF(object):
                 data = pd.DataFrame(ninjaraObj.fast_min_ticks, columns=['time', 'price'])
                 data['time'] = pd.to_datetime(data['time'], unit='s', utc=True)
                 data = data.set_index('time')
-                data = data.tz_convert(tz='Asia/Kolkata')
+                # data = data.tz_convert(tz='Asia/Kolkata')
                 ti = data.loc[:, ['price']]
                 fast_min_bars = ti.price.resample(str(ninjaraObj.fast_min)+'min').ohlc()
                 for index, row in fast_min_bars.iterrows():

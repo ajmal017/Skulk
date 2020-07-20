@@ -5,8 +5,9 @@ from datetime import timezone
 # sys.path.append(os.getcwd()[:os.getcwd().find("TickAlgoAgent")+len("TickAlgoAgent")])
 from skulk.ninjara.src.algos.sapm_objects import SapmObjects as so
 from skulk.ninjara.src.main.ninjara_objects import NinjaraObjects as ninjaraObj
+from skulk.ninjara.src.utility.utils import NinjaraUtils
 from base_utils.error_book.errorbook import ErrorBook
-from base_utils.gcloud.gsheet import GSheet
+
 import time, traceback, datetime
 # os.environ['TZ'] = 'Asia/Kolkata'
 # time.tzset()
@@ -25,7 +26,8 @@ class Sapm(object):
         global log, error
         log = ninjaraObj.log
         error = ErrorBook(log)
-        self.gsheet = GSheet(log)
+        self.util = NinjaraUtils(log)
+
         if ninjaraObj.backtest is False:
             self.entime = datetime.datetime.strptime(ninjaraObj.market_date + ' 04:00:00', '%Y%m%d %H:%M:%S')
             self.ent930am = self.entime.timestamp()
@@ -40,6 +42,27 @@ class Sapm(object):
             self.extime = datetime.datetime.strptime(ninjaraObj.market_date + ' 15:10:00', '%Y%m%d %H:%M:%S')
             self.exit320pm = self.extime.timestamp()
             # time.mktime(self.extime.timetuple()) # self.extime.replace(tzinfo=timezone.utc)
+
+    def reset_sapm_object(self):
+        so.SYMBOL = ninjaraObj.symbol
+        so.TI = int(so.check_get_sapm_config('TI'))
+        so.DTH = float(so.check_get_sapm_config('DTH'))
+        so.TSL = 0.0
+        so.SL = 0.0
+        so.titicks = []
+        so.avgs = []
+        so.LBuy_Position = False
+        so.SSell_Position = False
+        so.LSL_Price = 0
+        so.SSL_Price = 0
+        so.LB_Price = 0
+        so.SS_Price = 0
+        so.No_Trades = 0
+        so.LSL_Price = 0
+        so.SSL_Price = 0
+        so.TI_SAPM_LONG = 0
+        so.TI_SAPM_SHORT = 0
+        so.net_profit = []
 
     def time_converter(self, utc_ticktime):
         # time.localtime(int(ticktime))))
@@ -57,16 +80,6 @@ class Sapm(object):
                 so.TSL = round(ticks.get('Price') * (float(so.check_get_sapm_config('TSL')) / 100), 1)
                 print("STOP LOSS", str(so.SL), " TRAILING STOP LOSS", so.TSL)
 
-    def order_info(self, order_dict):
-        try:
-            log.info(order_dict)
-            print("***** ORDER DETAILS ******")
-            print(order_dict)
-            print("***** ************* ******")
-            self.gsheet.appendRow(ninjaraObj.backtest_result_sheet, list(order_dict.values()))
-        except Exception as ex:
-            error.handle(ex, traceback.format_exc())
-
     def algo(self, ticktime, tickprice):
         try:
             if ticktime > self.exit320pm:
@@ -80,14 +93,15 @@ class Sapm(object):
                     so.No_Trades = so.No_Trades + 1
                     # print("NET :" + str(sum(so.net_profit)))
                     # print("Number of TRADES :" + str(so.No_Trades))
-                    dt = {"symbol": ninjaraObj.symbol, "condition": "* LONG EXIT *",
+                    dt = {"algo": "SAPM",
+                          "symbol": ninjaraObj.symbol, "condition": "* LONG EXIT *",
                           "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
                           "price": str(tickprice),
                           "position": str(tickprice - so.LB_Price),
                           "net": str(sum(so.net_profit)),
                           "trades": str(so.No_Trades)
                     }
-                    self.order_info(dt)
+                    self.util.order_info(dt)
 
                 if so.SSell_Position is True:
                     # print("*** SHORT EXIT ," + str(
@@ -99,17 +113,13 @@ class Sapm(object):
                     so.No_Trades = so.No_Trades + 1
                     # print("NET :" + str(sum(so.net_profit)))
                     # print("Number of TRADES :" + str(so.No_Trades))
-                    dt = {"symbol": ninjaraObj.symbol, "condition": "* SHORT EXIT *",
+                    dt = {"algo": "SAPM",
+                          "symbol": ninjaraObj.symbol, "condition": "* SHORT EXIT *",
                           "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
                           "price": str(tickprice),
                           "position": str(so.SS_Price - tickprice), "net": str(sum(so.net_profit)),
                           "trades": str(so.No_Trades)}
-                    self.order_info(dt)
-
-                    # dt = {"symbol": ninjaraObj.symbol, "condition": "*",
-                    #       "position": , "net": str(sum(so.net_profit)),
-                    #       "trades": str(so.No_Trades)}
-                    # self.order_info(dt)
+                    self.util.order_info(dt)
 
             if so.LBuy_Position is True:
                 if tickprice >= (so.LSL_Price + so.SL + so.TSL):
@@ -127,12 +137,14 @@ class Sapm(object):
                     so.No_Trades = so.No_Trades + 1
                     # print("NET :" + str(sum(so.net_profit)))
                     # print("Number of TRADES :" + str(so.No_Trades))
-                    dt = {"symbol": ninjaraObj.symbol, "condition": "* LONG EXIT *",
+                    dt = {"algo": "SAPM",
+                          "symbol": ninjaraObj.symbol, "condition": "* LONG EXIT *",
                           "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
                           "price": str(tickprice),
-                          "position":str(tickprice - so.LB_Price), "net": str(sum(so.net_profit)),
-                                              "trades": str(so.No_Trades)}
-                    self.order_info(dt)
+                          "position":str(tickprice - so.LB_Price),
+                          "net": str(sum(so.net_profit)),
+                          "trades": str(so.No_Trades)}
+                    self.util.order_info(dt)
 
             if so.SSell_Position is True:
                 if tickprice <= (so.SSL_Price - so.SL - so.TSL):
@@ -150,12 +162,13 @@ class Sapm(object):
                     so.No_Trades = so.No_Trades + 1
                     # print("NET :" + str(sum(so.net_profit)))
                     # print("Number of TRADES :" + str(so.No_Trades))
-                    dt = {"symbol": ninjaraObj.symbol, "condition": "* SHORT EXIT *",
+                    dt = {"algo": "SAPM",
+                          "symbol": ninjaraObj.symbol, "condition": "* SHORT EXIT *",
                           "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
                           "price": str(tickprice),
                           "position": str(so.SS_Price - tickprice), "net": str(sum(so.net_profit)),
                           "trades": str(so.No_Trades)}
-                    self.order_info(dt)
+                    self.util.order_info(dt)
 
             if (ticktime < self.exit320pm) and (ticktime > self.ent930am):
                 if len(so.titicks) > 0:
@@ -183,11 +196,12 @@ class Sapm(object):
                                 so.LB_Price = tickprice
                                 so.LBuy_Position = True
                                 so.LSL_Price = tickprice - so.SL
-                                dt = {"symbol": ninjaraObj.symbol, "condition": "* LONG ENTRY *",
-                                       "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
-                                       "price": str(tickprice)
+                                dt = {"algo": "SAPM",
+                                      "symbol": ninjaraObj.symbol, "condition": "* LONG ENTRY *",
+                                      "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
+                                      "price": str(tickprice)
                                       }
-                                self.order_info(dt)
+                                self.util.order_info(dt)
                             elif ticktime > so.TI_SAPM_LONG:
                                 ninjaraObj.long_flags['SL_SAPM'] = 0
 
@@ -202,14 +216,14 @@ class Sapm(object):
                                 so.SS_Price = tickprice
                                 so.SSell_Position = True
                                 so.SSL_Price = tickprice + so.SL
-                                dt = {"symbol": ninjaraObj.symbol, "condition": "* SHORT ENTRY *",
+                                dt = {"algo": "SAPM",
+                                      "symbol": ninjaraObj.symbol, "condition": "* SHORT ENTRY *",
                                       "time": str(time.strftime("%D %H:%M:%S", self.time_converter(int(ticktime)))),
                                       "price": str(tickprice)
                                       }
-                                self.order_info(dt)
+                                self.util.order_info(dt)
                             elif ticktime > so.TI_SAPM_SHORT:
                                 ninjaraObj.short_flags['SL_SAPM'] = 0
-
                         so.titicks.clear()
                     else:
                         so.titicks.append([ticktime, tickprice])

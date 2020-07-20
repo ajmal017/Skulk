@@ -20,6 +20,9 @@ class Indicators(object):
         error = ErrorBook(ninjaraObj.log)
         self.sapm_obj_one = Sapm()
 
+    def reset_objects(self):
+        self.sapm_obj_one.reset_sapm_object()
+
     def data_frame(self, ticks):
         SLDF.generate_slow_min_df(ticks)
         FADF.generate_fast_min_df(ticks)

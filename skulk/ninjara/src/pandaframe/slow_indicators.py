@@ -33,7 +33,7 @@ def load_indicators():
         if ninjaraObj.start_sapm is True:
             flag_it()
     except Exception as ex:
-        error.handle(ex, traceback.format_exc())
+        ninjaraObj.log.warn(ex)
 
 
 def flag_it():
@@ -107,7 +107,7 @@ def flag_it():
         # print("*S",ninjaraObj.slow_min_shot_flags)
 
     except Exception as ex:
-        error.handle(ex, traceback.format_exc())
+        ninjaraObj.log.warn(ex)
 
 
 def moving_average(n):
@@ -118,7 +118,7 @@ def moving_average(n):
         else:
             ninjaraObj.slow_min_pd_DF._set_value(MA.tail(1).index, 'MA', MA.tail(1)[0])
     except Exception as ex:
-        error.handle(ex, traceback.format_exc(), n)
+        ninjaraObj.log.warn(ex)
 
 
 def exponential_moving_average(n):
@@ -129,7 +129,7 @@ def exponential_moving_average(n):
         else:
             ninjaraObj.slow_min_pd_DF._set_value(EMA.tail(1).index, 'EMA', EMA.tail(1)[0])
     except Exception as ex:
-        error.handle(ex, traceback.format_exc(), n)
+        ninjaraObj.log.warn(ex)
 
 
 def macd(n_fast, n_slow):
@@ -154,7 +154,7 @@ def macd(n_fast, n_slow):
         else:
             ninjaraObj.slow_min_pd_DF._set_value(MACDdiff.tail(1).index, 'MACDdiff', MACDdiff.tail(1)[0])
     except Exception as ex:
-        error.handle(ex, traceback.format_exc(), n_fast, n_slow)
+        ninjaraObj.log.warn(ex)
 
 
 def average_directional_movement_index(n, n_ADX):
@@ -217,7 +217,7 @@ def average_directional_movement_index(n, n_ADX):
             except:
                 pass
     except Exception as ex:
-        error.handle(ex, traceback.format_exc(), n, n_ADX)
+        ninjaraObj.log.warn(ex)
 
 
 def rsi(n):
@@ -262,4 +262,4 @@ def rsi(n):
             ninjaraObj.slow_min_pd_DF._set_value(ninjaraObj.slow_min_pd_DF.tail(1).index, 'RSI', RSI.tail(1).values[0])
 
     except Exception as ex:
-        error.handle(ex, traceback.format_exc(), n)
+        ninjaraObj.log.warn(ex)

@@ -27,7 +27,7 @@ class SlowDF(object):
                 data = pd.DataFrame(ninjaraObj.slow_min_ticks, columns=['time', 'price'])
                 data['time'] = pd.to_datetime(data['time'], unit='s', utc=True)
                 data = data.set_index('time')
-                data = data.tz_convert(tz='Asia/Kolkata')
+                # data = data.tz_convert(tz='Asia/Kolkata')
                 ti = data.loc[:, ['price']]
                 slow_min_bars = ti.price.resample(str(ninjaraObj.slow_min)+'min').ohlc()
                 for index, row in slow_min_bars.iterrows():

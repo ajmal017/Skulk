@@ -42,7 +42,7 @@ class Functions:
                 tdate = datetime.datetime.strptime(tdate, self.datefrmt)
             if tdate.isoweekday() not in excluded:
                 if tdate.strftime(self.datefrmt) not in json.loads(
-                        sb.get_value("nse_holiday_list", "trading_holiday_" + str(tdate.year))):
+                    sb.get_value("nse_holiday_list", "trading_holiday_" + str(tdate.year))):
                     log.debug("Given date %s is valid trade date" % tdate)
                     return True
             log.debug("Given date %s is not a valid trade date might be weekend or holiday" % tdate)

@@ -12,10 +12,6 @@ class NinjaraObjects:
     os.environ['NINJARA_CONFIG'] = os.getcwd()[:os.getcwd().find("Skulk")+len("Skulk")]+'/config/ninjara/config.ini'
     parser.read(os.getenv("NINJARA_CONFIG"))
     log = None
-    # indicator_thread = None
-    # hrhd_thread = None
-    # sapm_thread = None
-    start_sapm = True
     # All this below variable got assigned by main method through cmd line arguments
     topic = ""
     kafka = ""
@@ -23,8 +19,9 @@ class NinjaraObjects:
     market_date = ""
     prev_market_date = ""
     backtest = None
-    backtest_result_sheet = None
+    order_sheet = None
     # all below used in fast min data frame
+    start_sapm = True
     fast_min_ticks = []
     fast_min = int(parser.get('dataframes', 'fast_df'))
     cur_fast_min = 0

@@ -24,7 +24,7 @@ from base_utils.common.common_fuctions import Functions
 from json import loads
 log = None
 error = None
-class ConsumerAgent(object):
+class NinjaraAgent(object):
 
     ohlc_consumer = None
     indicator_obj = None
@@ -33,32 +33,34 @@ class ConsumerAgent(object):
     tick_df = None
 
     def __init__(self, args_topic, args_symbol, args_marketdate, args_kafkadetails="127.0.0.1:9092",
-                 args_backtest=False, args_backttest_result = None):
-        ninjaraObj.log = LogHandler.set_logger(args_topic)
+                 args_backtest=False, args_order_sheet = None):
+        LogHandler.set_logger(args_topic)
         global log, error
         log = ninjaraObj.log
         error = ErrorBook(log)
         ninjaraObj.backtest = bool(args_backtest)
-        ninjaraObj.backtest_result_sheet = args_backttest_result
+        ninjaraObj.order_sheet = args_order_sheet
         self.gstore = GStorage(log)
         self.comfunc = Functions(log)
-        arg_prevdate = self.comfunc.getPrevTradeday(args_marketdate)
         ninjaraObj.topic = args_topic
         ninjaraObj.kafka = args_kafkadetails
         ninjaraObj.market_date = args_marketdate
         ninjaraObj.symbol = args_symbol
+        arg_prevdate = self.comfunc.getPrevTradeday(args_marketdate)
         ninjaraObj.prev_market_date = arg_prevdate
+
         if ninjaraObj.backtest is False:
             self.exit_algo = datetime.datetime.strptime(ninjaraObj.market_date + ' 09:45:00', '%Y%m%d %H:%M:%S')
             self.exit_algo_315pm = self.exit_algo.timestamp()
+            self.ohlc_consumer = KafkaConsumer(bootstrap_servers=['localhost:9092'],
+                                               auto_offset_reset='earliest',
+                                               enable_auto_commit=True,
+                                               value_deserializer=lambda x: loads(x.decode('utf-8')))
         else:
             self.exit_algo = datetime.datetime.strptime(ninjaraObj.market_date + ' 15:15:00', '%Y%m%d %H:%M:%S')
             self.exit_algo_315pm = self.exit_algo.timestamp()
         self.tick_df = pd.DataFrame(None, columns=['Timestamp', 'Price'])
-        self.ohlc_consumer = KafkaConsumer(bootstrap_servers=['localhost:9092'],
-                      auto_offset_reset='earliest',
-                      enable_auto_commit=True,
-                      value_deserializer=lambda x: loads(x.decode('utf-8')))
+
 
     def export_dataframe(self, message):
         try:
@@ -68,10 +70,12 @@ class ConsumerAgent(object):
             ninjaraObj.fast_min_pd_DF.to_csv(os.path.join(dfs_path, ninjaraObj.symbol+"_fast_data_frames.csv"), header=True)
             ninjaraObj.slow_min_pd_DF.to_csv(os.path.join(dfs_path, ninjaraObj.symbol+"_slow_data_frames.csv"), header=True)
             self.tick_df.to_csv(os.path.join(dfs_path, ninjaraObj.symbol + "_ticks.csv"), header=True)
-            sys.exit()
+            if not ninjaraObj.backtest:
+                sys.exit()
         except Exception as ex:
             error.handle(ex,traceback.format_exc(),message)
-            sys.exit()
+            if not ninjaraObj.backtest:
+                sys.exit()
 
     def startlisten(self):
         indicator_obj = Indicators()
@@ -93,6 +97,8 @@ class ConsumerAgent(object):
 
     def startLocalLoop(self, path):
         try:
+            ninjaraObj.log.info("Algo Agent Preparing to Start")
+            self.loadDFs_with_prev_data(ninjaraObj.prev_market_date, ninjaraObj.symbol, "STK")
             indicator_obj = Indicators()
             ninjaraObj.log.info(
                 "Algo Agent Started Listening ticks for " + ninjaraObj.symbol + ", Topic Id:" + ninjaraObj.topic)
@@ -110,9 +116,23 @@ class ConsumerAgent(object):
                         indicator_obj.algo(message)
                     else:
                         self.export_dataframe(message)
+                        self.reset_ninjara_obj()
+                        indicator_obj.reset_objects()
+                        break
 
         except Exception as ex:
             error.handle(ex,traceback.format_exc())
+
+    def reset_ninjara_obj(self):
+        ninjaraObj.start_sapm = True
+        ninjaraObj.fast_min_ticks = []
+        ninjaraObj.fast_min = int(ninjaraObj.parser.get('dataframes', 'fast_df'))
+        ninjaraObj.cur_fast_min = 0
+        ninjaraObj.fast_min_pd_DF = pd.DataFrame([])
+        ninjaraObj.slow_min_ticks = []
+        ninjaraObj.slow_min = int(ninjaraObj.parser.get('dataframes', 'slow_df'))
+        ninjaraObj.cur_slow_min = 0
+        ninjaraObj.slow_min_pd_DF = pd.DataFrame([])
 
     def loadDFs_with_prev_data(self, date, symbol, contract_type="STK"):
         try:
@@ -123,7 +143,7 @@ class ConsumerAgent(object):
             data = pd.read_csv(csv_path)
             data['time'] = pd.to_datetime(data['time'], unit='s', utc=True)
             data = data.set_index('time')
-            data = data.tz_convert(tz='Asia/Kolkata')
+            # data = data.tz_convert(tz='Asia/Kolkata')
             ti = data.loc[:, ['price']]
             ninjaraObj.fast_min_pd_DF = ti.price.resample(str(ninjaraObj.fast_min) + 'min').ohlc()
             ninjaraObj.slow_min_pd_DF = ti.price.resample(str(ninjaraObj.slow_min) + 'min').ohlc()
@@ -147,10 +167,7 @@ class ConsumerAgent(object):
         try:
             ninjaraObj.log.info("Algo Agent Preparing to Start")
             self.loadDFs_with_prev_data(ninjaraObj.prev_market_date, ninjaraObj.symbol, "STK")
-            if ninjaraObj.backtest:
-                pass
-            else:
-                self.startlisten()
+            self.startlisten()
         except Exception as ex:
             error.handle(ex, traceback.format_exc())
 
@@ -171,14 +188,18 @@ def cmd_param_handlers():
                                    default="CIPLA", help="IB Symbol eg: INFY")
         cmdLineParser.add_argument("-bt", "--backtest", action="store", type=bool, dest="backtest",
                                    default=False, help="Back Test eg : True or False")
+        cmdLineParser.add_argument("-os", "--ordersheet", action="store", type=bool, dest="ordersheet",
+                                   default="", help="Order sheet name eg: namegenerator.gen()")
+
 
         args = cmdLineParser.parse_args()
         # ninjaraObj.backtest = bool(args.backtest)
-        consObj = ConsumerAgent(args_topic=str(args.topic),
+        consObj = NinjaraAgent(args_topic=str(args.topic),
                                 args_symbol=str(args.symbol),
                                 args_marketdate=str(args.marketdate),
                                 args_kafkadetails=str(args.kafka),
-                                args_backtest=bool(args.backtest))
+                                args_backtest=bool(args.backtest),
+                                args_order_sheet=str(args.ordersheet))
         consObj.startAgentEngine()
 
 

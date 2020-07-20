@@ -1,6 +1,7 @@
 import gspread
 import os
 import traceback
+import namegenerator
 
 # don't remove this unused import ist initialize google cred key
 from base_utils.common.skulk_objects import SkulkObjects as sb
@@ -27,11 +28,26 @@ class GSheet:
 
     def deletesheet(self, sheet_name):
         try:
-            ws = self.wb.worksheet(sheet_name)
-            if ws is not None:
-                self.wb.del_worksheet(ws)
+            worksheet_list = self.wb.worksheets()
+            for sheet in worksheet_list:
+                if sheet.title == sheet_name:
+                    ws = self.wb.worksheet(sheet_name)
+                    self.wb.del_worksheet(ws)
+                    break
         except Exception as ex:
             error.handle(ex, traceback.format_exc(), self.wb.title, sheet_name)
 
+    # It will delete, if sheet exist & recreate it.
+    def newRandomResultSheet(self):
+        try:
+            title = namegenerator.gen()
+            self.deletesheet(title)
+            worksheet = self.wb.add_worksheet(title=title, rows="100", cols="20")
+            worksheet.append_row(sb.result_sheet_head)
+            return worksheet.title
+        except Exception as ex:
+            error.handle(ex, traceback.format_exc())
+
 if __name__ == "__main__":
-    gs = GSheet()
+    gs = GSheet(None)
+    gs.newRandomResultSheet()

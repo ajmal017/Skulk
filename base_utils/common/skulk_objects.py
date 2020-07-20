@@ -14,7 +14,9 @@ class SkulkObjects:
     backtest_list_path = os.path.join(master_path, parser.get("common", "backtest_list"))
     hrhd_bucket = parser.get("common", "hrhd_bucket")
     hrhd_local_path = os.path.join(skulk_path, "hrhd_bank")
-
+    result_sheet_head = ["Algo", "Symbol", "Condition",
+            "Time", "Price", "Position",
+            "Net", "Trade"]
     @staticmethod
     def get_value(head, key):
         return SkulkObjects.parser.get(head, key)
